@@ -177,6 +177,90 @@ def hide_receipt_frame():
         place_order.destroy()
         place_order = None
 
+
+# Print Receipt Function
+def print_receipt(selected_items, receipt_widget=None):
+    global receipt_text_widget, place_order
+
+    # Hide the selected items panel
+    if selected_items_panel:
+        selected_items_panel.place_forget()
+
+    # Create a label for the receipt
+    Receipt = ttk.Label(dash_board, text="Receipt:", foreground='white', background='#DB7921',
+                        font=("Helvetica", 18, 'bold'))
+    Receipt.place(x=820, y=80)
+
+    # Create a new Text widget for the receipt
+    receipt_text_widget = Text(dash_board, width=40, bg='light gray', fg='gray', height=20, font=("Arial", 10),
+                               wrap="word", state="normal")
+    receipt_text_widget.place(x=820, y=120)
+
+    # Generate receipt content
+    current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())  # Format the current time
+
+    receipt_content = "=" * 30 + "\n"
+    receipt_content += f"Current Time: {current_time}\n\n"  # Add the formatted time
+    subtotal = sum(data['price'] * data['quantity'] for data in selected_items.values())
+    delivery_fee = 50 if subtotal > 0 else 0
+    total_amount = subtotal + delivery_fee
+
+    receipt_content += f"Sub Total: ₱{subtotal:.2f}\n"
+    receipt_content += f"Delivery Charges: ₱{delivery_fee:.2f}\n"
+    receipt_content += f"Total: ₱{total_amount:.2f}\n"
+    receipt_content += "=" * 30 + "\n"
+
+    # Add itemized details
+    for item_name, item_data in selected_items.items():
+        item_total = item_data['price'] * item_data['quantity']
+        receipt_content += f"{item_name} x{item_data['quantity']} - ₱{item_total:.2f}\n"
+
+    receipt_content += "=" * 30 + "\nThank you for your order!\n"
+
+    # Display receipt in the widget
+    receipt_text_widget.delete(1.0, END)  # Clear existing content
+    receipt_text_widget.insert(END, receipt_content)  # Insert new content
+
+    # Make the receipt text read-only
+    receipt_text_widget.config(state="disabled")
+
+    # Add a "Place Another Order" button
+    place_order = Button(
+        dash_board,
+        width=20,
+        height=2,
+        text='Place Another Order',
+        bg='#DB7921',
+        foreground='white',
+        font=('Arial', 15, 'bold'),
+        border=0,
+        command=lambda: [hide_receipt_frame(), reset_ui(), display_chosen_items()]
+        # Reset the UI and display chosen items
+    )
+    place_order.place(x=840, y=460)
+
+
+# Hide the receipt frame
+def hide_receipt_frame():
+    if receipt_text_widget:
+        receipt_text_widget.place_forget()  # Remove the receipt text widget
+    if place_order:
+        place_order.place_forget()  # Remove the "Place Another Order" button
+
+# Reset UI elements when placing another order
+def reset_ui():
+    # Reset selected_items to an empty dictionary to avoid summing previous items
+    global selected_items
+    selected_items = {}
+
+    # Reset the subtotal, delivery charge, and total labels
+    if sub_total:
+        sub_total.config(text="Sub Total: ₱0.00")
+    if delivery_charge:
+        delivery_charge.config(text="Delivery Charges: ₱0.00")
+    if total:
+        total.config(text="Total: ₱0.00")
+
 # Display Chosen Items Function
 def display_chosen_items():
     global selected_items_panel, sub_total, delivery_charge, total, Orders, place_order
@@ -215,7 +299,8 @@ def display_chosen_items():
         bg='#DB7921',
         foreground='white',
         font=('Arial', 15, 'bold'),
-        border=0
+        border=0,
+        command=lambda: print_receipt(selected_items)  # Link it to print_receipt function
     )
     place_order.place(x=840, y=460)
 
@@ -716,6 +801,11 @@ Footer.place(relx=0.5, rely=1.0, anchor="s", y=-7)
 
 # Call display_home() to show the Home screen by default when the app starts
 display_home()
+
+ads()
+
+# Run the main loop
+dash_board.mainloop()
 
 ads()
 
